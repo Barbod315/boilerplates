@@ -1,0 +1,84 @@
+## ANSIBLE MANAGED FILE - DO NOT EDIT ##
+
+<Extension json>
+    Module  xm_json
+</Extension>
+
+{# Event Viewer Input #}
+<Input EventViewer>
+    Module  im_msvistalog
+    <QueryXML>
+        <QueryList>
+            <Query Id='1'>
+                <!-- Original XML content here -->
+            </Query>
+        </QueryList>
+    </QueryXML>
+    
+    <Exec>
+        delete($EventReceivedTime);
+        delete($SourceModuleName);
+        delete($SourceModuleType);
+        if      ($EventID != 1102) and ($Channel == 'Security')
+        {
+            delete($Message);
+            delete($Properties);
+        }
+        to_json();
+    </Exec>
+</Input>
+
+{# Sysmon Input #}
+<Input Sysmon>
+    Module  im_msvistalog
+    <QueryXML>
+        <QueryList>
+            <Query Id='1'>
+                <Select Path="Microsoft-Windows-Sysmon/Operational">*</Select>
+            </Query>
+        </QueryList>
+    </QueryXML>
+    
+    <Exec>
+        if      ($EventID == 12)
+        {
+            if ($Message =~ /.*EventType\:\s+(\w+).*/)  $ActionName = $1;
+        }
+        if ($Message =~ /ProcessId:\s+(\d+)/)   $ProcessId = $1;
+        delete($EventReceivedTime);
+        delete($SourceModuleName);
+        delete($SourceModuleType);
+        delete($Message);
+        to_json();
+    </Exec>
+</Input>
+
+{# PowerShell Input #}
+<Input PowerShell>
+    Module  im_msvistalog
+    <QueryXML>
+        <QueryList>
+            <Query Id='1'>
+                <Select Path="Microsoft-Windows-PowerShell/Operational">*</Select>
+                <Select Path="Windows PowerShell">*[System[( (EventID &gt;= 400 and EventID &lt;= 403) or EventID=800)]]</Select>
+            </Query>
+        </QueryList>
+    </QueryXML>
+    
+    <Exec>
+        delete($EventReceivedTime);
+        delete($SourceModuleName);
+        delete($SourceModuleType);
+        to_json();
+    </Exec>
+</Input>
+
+<Output Corelog>
+    Module  om_tcp
+    Host    {{ corelog_ip }}
+    Port    514
+</Output>
+
+<Route 1>
+    Path    EventViewer, Sysmon, PowerShell => Corelog
+</Route>
