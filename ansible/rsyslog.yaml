@@ -3,7 +3,7 @@
   hosts: all
   become: yes
   vars:
-    corelog_ip: "192.168.1.100"  # Set your Corelog server IP here
+    corelog_ip: "192.168.1.100"  # Set your Corelog server IP
     rsyslog_conf: "/etc/rsyslog.conf"
     bashrc_file: "/etc/bashrc"
 
@@ -32,7 +32,7 @@
         regexp: '^PROMPT_COMMAND=.*LnxCmd:'
         state: present
         insertafter: EOF
-      validate: '/usr/bin/bash -n %s'
+        validate: '/usr/bin/bash -n %s'  # Fixed indentation
 
   handlers:
     - name: validate rsyslog config
