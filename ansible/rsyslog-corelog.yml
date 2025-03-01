@@ -1,0 +1,21 @@
+---
+- name: Configure rsyslog forwarding
+  hosts: all
+  become: yes
+  vars:
+    corelog_ip: "{{ semaphore_corelog_ip }}"  # Semaphore will inject this
+    rsyslog_conf: "/etc/rsyslog.conf"
+
+  tasks:
+    - name: Ensure template exists
+      ansible.builtin.template:
+        src: templates/rsyslog_corelog.conf.j2
+        dest: "{{ rsyslog_conf }}"
+        validate: rsyslogd -N1 -f %s
+      notify: restart rsyslog
+
+  handlers:
+    - name: restart rsyslog
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
