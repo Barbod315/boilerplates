@@ -1,6 +1,6 @@
 ---
 - name: Configure NXLog on Windows
-  hosts: windows
+  hosts: Windows
   vars:
     corelog_ip: "172.16.1.6"
     nxlog_installer_path: "C:\\Temp\\nxlog-ce-3.2.2332.msi"
