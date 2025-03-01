@@ -1,20 +1,34 @@
 ---
-- name: Configure rsyslog forwarding
-  hosts: all
+- name: Configure rsyslog and command logging
+  hosts: Linux
   become: yes
   vars:
-    corelog_ip: "{{ semaphore_corelog_ip }}"  # Semaphore will inject this
     rsyslog_conf: "/etc/rsyslog.conf"
+    # corelog_ip will come from survey variables
 
   tasks:
-    - name: Ensure template exists
-      ansible.builtin.template:
-        src: rsyslog_corelog.conf.j2
-        dest: "{{ rsyslog_conf }}"
-        validate: rsyslogd -N1 -f %s
-      notify: restart rsyslog
+    - name: Backup original rsyslog.conf
+      ansible.builtin.copy:
+        src: "{{ rsyslog_conf }}"
+        dest: "{{ rsyslog_conf }}.bak"
+        remote_src: yes
+
+    - name: Add remote logging configuration
+      ansible.builtin.lineinfile:
+        path: "{{ rsyslog_conf }}"
+        line: "kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514"
+        regexp: "^kern\\.\\*;user\\.\\*"
+        state: present
+        insertafter: EOF
+      notify:
+        - validate rsyslog config
+        - restart rsyslog
 
   handlers:
+    - name: validate rsyslog config
+      command: rsyslogd -N1 -f "{{ rsyslog_conf }}"
+      listen: "restart rsyslog"
+
     - name: restart rsyslog
       ansible.builtin.service:
         name: rsyslog
