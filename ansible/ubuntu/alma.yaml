@@ -1,0 +1,14 @@
+---
+- name: Update and upgrade dnf packages
+  hosts: Linux
+
+  tasks:
+    - name: Update packages with dnf
+      when: ansible_pkg_mgr == 'dnf'
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Upgrade packages with dnf
+      when: ansible_pkg_mgr == 'dnf'
+      ansible.builtin.dnf:
+        upgrade: dist
