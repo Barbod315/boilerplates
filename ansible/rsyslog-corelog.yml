@@ -4,7 +4,6 @@
   become: yes
   vars:
     rsyslog_conf: "/etc/rsyslog.conf"
-    # corelog_ip will come from survey variables
 
   tasks:
     - name: Backup original rsyslog.conf
@@ -13,12 +12,16 @@
         dest: "{{ rsyslog_conf }}.bak"
         remote_src: yes
 
-    - name: Add remote logging configuration
-      ansible.builtin.lineinfile:
+    - name: Add template definition and remote logging configuration
+      ansible.builtin.blockinfile:
         path: "{{ rsyslog_conf }}"
-        line: "kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514"
-        regexp: "^kern\\.\\*;user\\.\\*"
-        state: present
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - REMOTE LOGGING"
+        block: |
+          # Define template for no timestamp format
+          $template noTimestampFormat,"%syslogtag%%msg%\n"
+          
+          # Remote logging configuration
+          kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514;noTimestampFormat
         insertafter: EOF
       notify:
         - validate rsyslog config
@@ -27,6 +30,9 @@
   handlers:
     - name: validate rsyslog config
       command: rsyslogd -N1 -f "{{ rsyslog_conf }}"
+      register: rsyslog_validate
+      changed_when: false
+      failed_when: rsyslog_validate.rc != 0
       listen: "restart rsyslog"
 
     - name: restart rsyslog
