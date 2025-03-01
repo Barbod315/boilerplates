@@ -1,44 +1,22 @@
----
 - name: Configure rsyslog and command logging
   hosts: all
   become: yes
   vars:
     corelog_ip: "192.168.1.100"  # Set your Corelog server IP
     rsyslog_conf: "/etc/rsyslog.conf"
-    bashrc_file: "/etc/bashrc"
 
   tasks:
-    - name: Backup original rsyslog.conf
-      ansible.builtin.copy:
-        src: "{{ rsyslog_conf }}"
-        dest: "{{ rsyslog_conf }}.bak"
-        remote_src: yes
-
-    - name: Add remote logging configuration
-      ansible.builtin.lineinfile:
+    - name: Add required template and forwarding rule
+      ansible.builtin.blockinfile:
         path: "{{ rsyslog_conf }}"
-        line: "kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514"
-        regexp: "^kern\\.\\*;user\\.\\*"
-        state: present
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - REMOTE LOGGING"
+        block: |
+          $template noTimestampFormat,"%syslogtag%%msg%\\n"
+          kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514;noTimestampFormat
         insertafter: EOF
-      notify:
-        - validate rsyslog config
-        - restart rsyslog
-
-    - name: Add PROMPT_COMMAND to bashrc
-      ansible.builtin.lineinfile:
-        path: "{{ bashrc_file }}"
-        line: 'PROMPT_COMMAND=''history -a >(tee -a ~/.bash_history | logger -t "LnxCmd: $USER[$$]$SSH_CONNECTION command")'''
-        regexp: '^PROMPT_COMMAND=.*LnxCmd:'
-        state: present
-        insertafter: EOF
-        validate: '/usr/bin/bash -n %s'  # Fixed indentation
+      notify: restart rsyslog
 
   handlers:
-    - name: validate rsyslog config
-      command: rsyslogd -N1 -f "{{ rsyslog_conf }}"
-      listen: "restart rsyslog"
-
     - name: restart rsyslog
       ansible.builtin.service:
         name: rsyslog
