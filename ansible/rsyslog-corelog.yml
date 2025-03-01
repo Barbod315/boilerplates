@@ -24,10 +24,16 @@
         marker: "# {mark} ANSIBLE MANAGED BLOCK - REMOTE LOGGING"
         state: absent
 
-    - name: Add remote logging configuration
-      ansible.builtin.lineinfile:
+    - name: Add logging configurations
+      ansible.builtin.blockinfile:
         path: "{{ rsyslog_conf }}"
-        line: "kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - LOGGING CONFIG"
+        block: |
+          # Remote logging configuration
+          kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514
+          
+          # Command logging configuration
+          PROMPT_COMMAND='history -a >(tee -a ~/.bash_history | logger -t "LnxCmd: $USER[$$]$SSH_CONNECTION command")'
         state: present
         insertafter: EOF
       notify: restart rsyslog
