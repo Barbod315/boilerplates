@@ -12,11 +12,22 @@
         dest: "{{ rsyslog_conf }}.bak"
         remote_src: yes
 
+    - name: Remove existing remote logging configurations
+      ansible.builtin.lineinfile:
+        path: "{{ rsyslog_conf }}"
+        regexp: "^kern\\.\\*;user\\.\\*;daemon\\.\\*;auth\\.\\*;authpriv\\.\\*;syslog\\.\\*;cron\\.\\*;security\\.\\* @.*"
+        state: absent
+
+    - name: Remove any existing managed blocks
+      ansible.builtin.blockinfile:
+        path: "{{ rsyslog_conf }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - REMOTE LOGGING"
+        state: absent
+
     - name: Add remote logging configuration
       ansible.builtin.lineinfile:
         path: "{{ rsyslog_conf }}"
         line: "kern.*;user.*;daemon.*;auth.*;authpriv.*;syslog.*;cron.*;security.* @{{ corelog_ip }}:514"
-        regexp: "^kern\\.\\*;user\\.\\*"
         state: present
         insertafter: EOF
       notify: restart rsyslog
