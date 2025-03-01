@@ -1,0 +1,14 @@
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+$ModLoad imuxsock
+$ModLoad imjournal
+$WorkDirectory /var/lib/rsyslog
+
+$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
+
+# Corelog Forwarding
+*.* @{{ corelog_ip }}:514
+
+# Local Importante logs
+auth,authpriv.* /var/log/auth.log
+*.emerg :omusrmsg:*
