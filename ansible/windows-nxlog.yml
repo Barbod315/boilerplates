@@ -27,7 +27,7 @@
 
     - name: Deploy NXLog configuration
       ansible.windows.win_template:
-        src: templates/nxlog.conf.j2
+        src: nxlog.conf.j2
         dest: "{{ nxlog_config_path }}"
       notify: Restart NXLog
 
