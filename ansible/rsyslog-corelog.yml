@@ -9,7 +9,7 @@
   tasks:
     - name: Ensure template exists
       ansible.builtin.template:
-        src: templates/rsyslog_corelog.conf.j2
+        src: rsyslog_corelog.conf.j2
         dest: "{{ rsyslog_conf }}"
         validate: rsyslogd -N1 -f %s
       notify: restart rsyslog
