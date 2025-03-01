@@ -1,0 +1,39 @@
+---
+- name: Configure NXLog on Windows
+  hosts: windows
+  vars:
+    corelog_ip: "172.16.1.6"
+    nxlog_installer_path: "C:\\Temp\\nxlog-ce-3.2.2332.msi"
+    nxlog_config_path: "C:\\Program Files (x86)\\nxlog\\conf\\nxlog.conf"
+
+  tasks:
+    - name: Create temporary directory
+      ansible.windows.win_file:
+        path: C:\Temp
+        state: directory
+
+    - name: Copy NXLog installer
+      ansible.windows.win_copy:
+        src: files/nxlog/nxlog-ce-3.2.2332.msi
+        dest: "{{ nxlog_installer_path }}"
+
+    - name: Install NXLog
+      ansible.windows.win_package:
+        path: "{{ nxlog_installer_path }}"
+        product_id: "{893D3B70-6851-45E2-9653-9E6F3B791D0B}"  # Verify with your MSI
+        arguments: /quiet /norestart
+      register: install_result
+      failed_when: install_result.rc not in [0, 3010]
+
+    - name: Deploy NXLog configuration
+      ansible.windows.win_template:
+        src: templates/nxlog.conf.j2
+        dest: "{{ nxlog_config_path }}"
+      notify: Restart NXLog
+
+  handlers:
+    - name: Restart NXLog
+      ansible.windows.win_service:
+        name: nxlog
+        state: restarted
+        start_mode: auto
